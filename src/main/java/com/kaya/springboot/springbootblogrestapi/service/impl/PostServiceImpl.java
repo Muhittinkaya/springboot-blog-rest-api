@@ -2,6 +2,7 @@ package com.kaya.springboot.springbootblogrestapi.service.impl;
 
 import com.kaya.springboot.springbootblogrestapi.dto.PostDto;
 import com.kaya.springboot.springbootblogrestapi.entity.Post;
+import com.kaya.springboot.springbootblogrestapi.exception.ResourceNotFoundException;
 import com.kaya.springboot.springbootblogrestapi.repository.PostRepository;
 import com.kaya.springboot.springbootblogrestapi.service.PostService;
 import org.springframework.stereotype.Service;
@@ -34,6 +35,12 @@ public class PostServiceImpl implements PostService {
     public List<PostDto> getAllPosts() {
         List<Post> posts = postRepository.findAll();
         return posts.stream().map(post -> convertEntityToDto(post)).collect(Collectors.toList()); // Lambda expression, operating on lists
+    }
+
+    @Override
+    public PostDto getPostById(long id) {
+        Post post = postRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Post", "id", id));
+        return convertEntityToDto(post);
     }
 
     //convert Entity to dto method
