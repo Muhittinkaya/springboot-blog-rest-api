@@ -1,10 +1,15 @@
 package com.kaya.springboot.springbootblogrestapi.service.impl;
 
 import com.kaya.springboot.springbootblogrestapi.dto.PostDto;
+import com.kaya.springboot.springbootblogrestapi.dto.PostResponse;
 import com.kaya.springboot.springbootblogrestapi.entity.Post;
 import com.kaya.springboot.springbootblogrestapi.exception.ResourceNotFoundException;
 import com.kaya.springboot.springbootblogrestapi.repository.PostRepository;
 import com.kaya.springboot.springbootblogrestapi.service.PostService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,15 +37,65 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public List<PostDto> getAllPosts() {
-        List<Post> posts = postRepository.findAll();
-        return posts.stream().map(post -> convertEntityToDto(post)).collect(Collectors.toList()); // Lambda expression, operating on lists
+    public PostResponse getAllPosts(int pageNo, int pageSize, String sortBy) {
+
+        //  Create pageable instance
+        Pageable pageable = PageRequest.of(pageNo, pageSize, Sort.by(sortBy));
+
+        Page<Post> posts = postRepository.findAll(pageable);
+
+        // get content
+        List<Post> listOfPost = posts.getContent();
+
+        List<PostDto> content = listOfPost.stream().map(post -> convertEntityToDto(post)).collect(Collectors.toList()); // Lambda expression, operating on lists
+
+        PostResponse postResponse = new PostResponse();
+        postResponse.setContent(content);
+        postResponse.setLast(posts.isLast());
+        postResponse.setPageNo(posts.getNumber());
+        postResponse.setPageSize(posts.getSize());
+        postResponse.setTotalElements(posts.getTotalElements());
+        postResponse.setTotalPages(posts.getTotalPages());
+
+        return postResponse;
     }
 
     @Override
     public PostDto getPostById(long id) {
         Post post = postRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Post", "id", id));
         return convertEntityToDto(post);
+    }
+
+    @Override
+    public PostDto updatePost(PostDto postDto, long id) {
+        // 1- At first get the post with related id
+        // 2- then update it
+        // 3- then save the updated version to database
+        // 4- then return
+
+        // 1
+        Post post = postRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Post", "id", id));
+
+        //2
+        post.setTitle(postDto.getTitle());
+        post.setContent(postDto.getContent());
+        post.setDescription(post.getDescription());
+
+        //3
+        Post updatedPost = postRepository.save(post);
+
+        //4
+        return convertEntityToDto(post);
+    }
+
+    @Override
+    public void deletePostById(long id) {
+        // 1- At first get the post with related id
+        // 2- then delete it with the help of repository
+
+        //1
+        Post post = postRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Post", "id", id));
+        postRepository.delete(post);
     }
 
     //convert Entity to dto method
